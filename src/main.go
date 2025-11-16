@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
@@ -83,13 +84,50 @@ func handleConnection(conn net.Conn) {
 func main() {
 	protocol := "tcp"
 	port := ":8000"
+	useTLS := os.Getenv("USE_TLS") == "true"
+	certFile := os.Getenv("TLS_CERT_FILE")
+	keyFile := os.Getenv("TLS_KEY_FILE")
 
-	listener, err := net.Listen(protocol, port)
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
+	var listener net.Listener
+	var err error
+
+	if useTLS {
+		if _, err := os.Stat(certFile); os.IsNotExist(err) {
+			log.Printf("Certificate file %s not found, falling back to HTTP", certFile)
+			useTLS = false
+		}
+		if _, err := os.Stat(keyFile); os.IsNotExist(err) {
+			log.Printf("Key file %s not found, falling back to HTTP", keyFile)
+			useTLS = false
+		}
+
+		if useTLS {
+			cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+			if err != nil {
+				log.Printf("Failed to load TLS key pair: %v", err)
+				useTLS = false
+			} else {
+				tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+				listener, err = tls.Listen(protocol, port, tlsConfig)
+				if err != nil {
+					log.Printf("Failed to start TLS listener: %v", err)
+					useTLS = false
+				} else {
+					log.Printf("Listening on HTTPS port %s", port)
+				}
+			}
+		}
 	}
-	fmt.Printf("Listening on port %s\n", port)
+
+	if !useTLS {
+		listener, err = net.Listen(protocol, port)
+		if err != nil {
+			log.Fatalf("Failed to start HTTP listener: %v", err)
+		}
+		log.Printf("Listening on HTTP port %s", port)
+	}
+
+	log.Printf("Listening on port %s\n", port)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {

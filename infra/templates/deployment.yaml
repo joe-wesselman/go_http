@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-http
+  labels:
+    app: go-http
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: go-http
+  template:
+    metadata:
+      labels:
+        app: go-http
+    spec:
+      imagePullSecrets:
+        - name: docker-sec
+      containers:
+        - name: go-http
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}

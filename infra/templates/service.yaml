@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-http
+  labels:
+    app: go-http
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: go-http
+  ports:
+    - name: http
+      port: 80
+      targetPort: {{ .Values.service.port }}
+      protocol: TCP

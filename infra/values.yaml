@@ -1,0 +1,28 @@
+replicaCount: 1
+
+image:
+  repository: docker.io/josephwesselman/project-imgs
+  tag: go-server-0.0.1
+  pullPolicy: IfNotPresent
+
+service:
+  port: 8000
+  type: ClusterIP
+
+imagePullSecrets: 
+  - name: docker-sec
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: go.joecalhost.dev
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - go.joecalhost.dev
+      secretName: go-http-tls
+
+resources: {}
